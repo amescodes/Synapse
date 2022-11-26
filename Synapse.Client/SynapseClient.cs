@@ -8,6 +8,8 @@ namespace Synapse
 {
     public class SynapseClient
     {
+        private const int Port = 8278;
+
         private Channel channel;
         private RevitRunner.RevitRunnerClient revitRunner;
 
@@ -17,7 +19,7 @@ namespace Synapse
         {
             SynapseClient synapseClient = new SynapseClient();
             
-            synapseClient.channel = new Channel($"127.0.0.1:7221", ChannelCredentials.Insecure);
+            synapseClient.channel = new Channel($"127.0.0.1:{Port}", ChannelCredentials.Insecure);
             synapseClient.revitRunner = new RevitRunner.RevitRunnerClient(synapseClient.channel);
 
             return synapseClient;

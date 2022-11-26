@@ -12,6 +12,8 @@ namespace Synapse.Revit
 {
     public class SynapseRevitService : RevitRunner.RevitRunnerBase
     {
+        private const int Port = 8278;
+
         public static bool ServerReady { get; private set; }
         private static Server GrpcServer { get; set; }
 
@@ -31,7 +33,7 @@ namespace Synapse.Revit
                     return true;
                 }
 
-                GrpcServer = StartGrpcServer("localhost", 7221);
+                GrpcServer = StartGrpcServer("127.0.0.1", Port);
             }
             catch
             {
@@ -71,6 +73,7 @@ namespace Synapse.Revit
             }
         }
 
+
         public override Task<SynapseOutput> DoRevit(SynapseRequest request, ServerCallContext context)
         {
             if (!synapseMethodDictionary.TryGetValue(request.MethodId, out MethodInfo method))
@@ -92,7 +95,7 @@ namespace Synapse.Revit
             ParameterInfo[] parameters = method.GetParameters();
             if (parameters.Length != commandInputsAsArray?.Length)
             {
-                throw new SynapseRevitException(
+                throw new ArgumentException(
                     $"Number of input arguments ({commandInputsAsArray?.Length}) from the attribute on method {method.Name} " +
                     $"does not match the number needed by the method ({method.GetGenericArguments().Length}).");
             }
