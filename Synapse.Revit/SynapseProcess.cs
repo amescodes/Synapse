@@ -34,9 +34,9 @@ namespace Synapse.Revit
                 
                 return process;
             }
-            catch (Exception ex)
+            catch
             {
-                return null;
+                throw new SynapseRevitException($"No process found at ProcessPath for synapse {Synapse.GetType()}.{Environment.NewLine}Path:  {ProcessPath}");
             }
         }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -46,7 +47,7 @@ namespace Synapse.Revit
         public static SynapseProcess RegisterSynapse(IRevitSynapse synapse)
         {
             // check if synapse is already registered
-            if (synapseDictionary.Values.FirstOrDefault(s=>s.Id.Equals(synapse.Id)) is SynapseProcess process)
+            if (synapseDictionary.Values.FirstOrDefault(s => s.Id.Equals(synapse.Id)) is SynapseProcess process)
             {
                 return process;
             }
@@ -61,7 +62,7 @@ namespace Synapse.Revit
         {
             foreach (KeyValuePair<string, SynapseProcess> methodIdAndProcess in synapseDictionary.ToList())
             {
-                string synapseIdFromDictionary = methodIdAndProcess.Value.Id.ToString();
+                string synapseIdFromDictionary = methodIdAndProcess.Value.Id;
                 if (synapseIdFromDictionary != synapse.Id)
                 {
                     continue;
@@ -113,21 +114,31 @@ namespace Synapse.Revit
         {
             SynapseRevitService service = new SynapseRevitService();
             // start grpc server
-            Server grpcServer = new Server
+            try
             {
-                Services = { RevitRunner.BindService(service) },
-                Ports = { new ServerPort(host, port, ServerCredentials.Insecure) }
-            };
+                Server grpcServer = new Server
+                {
+                    Services = { RevitRunner.BindService(service) },
+                    Ports = { new ServerPort(host, port, ServerCredentials.Insecure) }
+                };
 
-            grpcServer.Start();
-            ServerReady = true;
 
-            return grpcServer;
+                grpcServer.Start();
+                ServerReady = true;
+
+                return grpcServer;
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex.Message);
+                return null;
+            }
         }
 
         internal static void StopGrpcServer()
         {
             GrpcServer.ShutdownAsync();
+            ServerReady = false;
         }
 
         private static void AddSynapseMethodsToMethodDictionary(SynapseProcess synapseProcess)
