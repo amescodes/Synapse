@@ -368,3 +368,5 @@ FodyWeavers.xsd
 /build.sh
 /build.ps1
 /build.cmd
+/Synapse.Revit/keypair.snk
+*.snk
