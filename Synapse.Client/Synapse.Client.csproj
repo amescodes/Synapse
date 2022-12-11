@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>netcoreapp3.1</TargetFramework>
-		<AssemblyName>Synapse</AssemblyName>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<AssemblyName>Synapse.Client</AssemblyName>
 		<RootNamespace>Synapse</RootNamespace>
 	</PropertyGroup>
 

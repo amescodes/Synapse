@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Synapse.Revit</id>
+    <version>0.1.1-alpha0021</version>
+    <title>Synapse Revit</title>
+    <description>Server package for Revit Synapse library. This package should be loaded into the Revit addin.</description>
+    <authors>ames codes</authors>
+    <projectUrl>https://github.com/amescodes/Synapse</projectUrl>
+    <copyright>Copyright © 2022 ames codes</copyright>
+    <tags>revit grpc client server communication</tags>
+    <repository url="https://github.com/amescodes/Synapse" />
+  </metadata>
+</package>

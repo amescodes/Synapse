@@ -5,6 +5,7 @@
 
 branding/
 output/
+nuget/
 .nuke/
 
 # User-specific files

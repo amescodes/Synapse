@@ -37,13 +37,21 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Include="Synapse.Revit.nuspec" />
+	</ItemGroup>
+
+	<!--<ItemGroup>
+	  <None Include="ILRepack.targets" />
+	</ItemGroup>-->
+
+	<ItemGroup>
 		<PackageReference Include="Google.Protobuf" Version="3.21.9" />
 		<PackageReference Include="Grpc.Core" Version="2.46.5" />
 		<PackageReference Include="Grpc.Tools" Version="2.50.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="ILRepackX.Lib.MSBuild.Task" Version="2.1.0.1" />
+		<PackageReference Include="ILRepack" Version="2.0.18" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
 	</ItemGroup>
 

@@ -39,9 +39,9 @@
 	<Target Name="CleanOtherFiles" AfterTargets="ILRepacker">
 		<ItemGroup>
 			<OtherFiles Include="$(OutputPath)*.dll" Exclude="$(OutputPath)$(AssemblyName).dll" />
-			<OtherFiles Include="$(OutputPath)*.dll" Exclude="$(OutputPath)$(AssemblyName).dylib" />
-			<OtherFiles Include="$(OutputPath)*.dll" Exclude="$(OutputPath)$(AssemblyName).so" />
 			<OtherFiles Include="$(OutputPath)*.pdb" Exclude="$(OutputPath)$(AssemblyName).pdb" />
+			<OtherFiles Include="$(OutputPath)*.dylib"/>
+			<OtherFiles Include="$(OutputPath)*.so" />
 		</ItemGroup>
 		<Delete Files="%(OtherFiles.Identity)" />
 	</Target>
