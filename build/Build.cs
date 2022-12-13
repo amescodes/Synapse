@@ -147,7 +147,7 @@ class Build : NukeBuild
             {
                 nuspecFile.Files.Add(new ManifestFile(){Source = "Synapse.Revit.pdb", Target = "lib"});
             }
-            //nuspecFile.Files.Add(new ManifestFile(){Source = "grpc_csharp_ext.x64.dll", Target = "lib"});
+            nuspecFile.Files.Add(new ManifestFile() { Source = "grpc_csharp_ext.x64.dll", Target = "lib" });
             nuspecFile.Files.Add(new ManifestFile(){Source = iconFileName, Target = "."});
 
             AbsolutePath nuspecFilePath = NugetOutputDirectory / "Synapse.Revit.nuspec";
@@ -201,6 +201,7 @@ class Build : NukeBuild
 
         ILRepack(_ => _
                 .SetAssemblies(inputAssemblies)
+                .SetLib(serverBuildDir)
                 .SetVersion(GitVersion.AssemblySemFileVer)
                 .SetOutput(synapseDllFile)
                 .SetInternalize(true)
