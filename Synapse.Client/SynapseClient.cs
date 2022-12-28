@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using Grpc.Core;
 
@@ -13,12 +15,12 @@ namespace Synapse
         private Channel channel;
         private RevitRunner.RevitRunnerClient revitRunner;
 
-        private SynapseClient(){}
+        private SynapseClient() { }
 
         public static SynapseClient StartSynapseClient()
         {
             SynapseClient synapseClient = new SynapseClient();
-            
+
             synapseClient.channel = new Channel($"127.0.0.1:{Port}", ChannelCredentials.Insecure);
             synapseClient.revitRunner = new RevitRunner.RevitRunnerClient(synapseClient.channel);
 
@@ -61,6 +63,40 @@ namespace Synapse
         public async Task<SynapseOutput> DoRevitAsync(SynapseRequest request)
         {
             return await revitRunner.DoRevitAsync(request);
+        }
+
+        public async Task StreamRevit(SynapseRequest request, Action<SynapseOutput> outputAction)
+        {
+            using (var call = revitRunner.StreamRevit())
+            {
+                await call.RequestStream.WriteAsync(request);
+                await call.RequestStream.CompleteAsync();
+
+                await Task.Run(async () =>
+                {
+                    while (await call.ResponseStream.MoveNext())
+                    {
+                        SynapseOutput note = call.ResponseStream.Current;
+                        outputAction.Invoke(note);
+                    }
+                });
+            }
+        }
+
+        public async Task<SynapseOutput> StreamRevit(SynapseRequest request)
+        {
+            using (var call = revitRunner.StreamRevit())
+            {
+                await call.RequestStream.WriteAsync(request);
+                await call.RequestStream.CompleteAsync();
+
+                while (await call.ResponseStream.MoveNext())
+                {
+                    return call.ResponseStream.Current;
+                }
+            }
+
+            return new SynapseOutput();
         }
 
         public void Shutdown()
