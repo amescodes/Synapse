@@ -4,9 +4,8 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 branding/
-output/
 nuget/
-.nuke/
+*.snk
 
 # User-specific files
 *.rsuser
@@ -366,8 +365,3 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/build.sh
-/build.ps1
-/build.cmd
-/Synapse.Revit/keypair.snk
-*.snk
