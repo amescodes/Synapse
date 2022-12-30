@@ -64,41 +64,7 @@ namespace Synapse
         {
             return await revitRunner.DoRevitAsync(request);
         }
-
-        public async Task StreamRevit(SynapseRequest request, Action<SynapseOutput> outputAction)
-        {
-            using (var call = revitRunner.StreamRevit())
-            {
-                await call.RequestStream.WriteAsync(request);
-                await call.RequestStream.CompleteAsync();
-
-                await Task.Run(async () =>
-                {
-                    while (await call.ResponseStream.MoveNext())
-                    {
-                        SynapseOutput note = call.ResponseStream.Current;
-                        outputAction.Invoke(note);
-                    }
-                });
-            }
-        }
-
-        public async Task<SynapseOutput> StreamRevit(SynapseRequest request)
-        {
-            using (var call = revitRunner.StreamRevit())
-            {
-                await call.RequestStream.WriteAsync(request);
-                await call.RequestStream.CompleteAsync();
-
-                while (await call.ResponseStream.MoveNext())
-                {
-                    return call.ResponseStream.Current;
-                }
-            }
-
-            return new SynapseOutput();
-        }
-
+        
         public void Shutdown()
         {
             channel.ShutdownAsync();

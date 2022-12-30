@@ -1,38 +1,43 @@
-using System;
 using System.Collections.Generic;
-using System.Data;
 using System.IO;
 using System.Linq;
-using GlobExpressions;
-using NuGet.Configuration;
-using NuGet.Frameworks;
-using NuGet.Packaging;
-using NuGet.Packaging.Core;
-using NuGet.Versioning;
+
 using Nuke.Common;
-using Nuke.Common.CI;
-using Nuke.Common.Execution;
-using Nuke.Common.Git;
+using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
-using Nuke.Common.Tooling;
 using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Tools.GitVersion;
 using Nuke.Common.Tools.ILRepack;
-using Nuke.Common.Tools.MSBuild;
 using Nuke.Common.Tools.NuGet;
 using Nuke.Common.Utilities.Collections;
-using static Nuke.Common.EnvironmentInfo;
 using static Nuke.Common.IO.FileSystemTasks;
 using static Nuke.Common.IO.PathConstruction;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 using static Nuke.Common.Tools.ILRepack.ILRepackTasks;
 using static Nuke.Common.Tools.NuGet.NuGetTasks;
 
+using NuGet.Packaging;
+using NuGet.Packaging.Core;
+using NuGet.Versioning;
+
+[GitHubActions(
+    name: "cicd",
+    GitHubActionsImage.WindowsLatest,
+    FetchDepth = 0,
+    OnPushBranches = new[] { "main", "develop" },
+    InvokedTargets = new[] { nameof(Build.Pack) },
+    ImportSecrets = new[] { nameof(SYNAPSE_NUGET_API_KEY) },
+    EnableGitHubToken = true,
+    PublishArtifacts = true,
+    CacheKeyFiles = new[] { "global.json", "./**/*.csproj" }
+)]
 class Build : NukeBuild
 {
-    [Solution(GenerateProjects = true)]
+    [Solution]
     readonly Solution Solution;
+
+    [Secret][Parameter] readonly string SYNAPSE_NUGET_API_KEY;
 
     [GitVersion(UpdateAssemblyInfo = true, UpdateBuildNumber = true, NoFetch = true)]
     readonly GitVersion GitVersion;
@@ -44,10 +49,8 @@ class Build : NukeBuild
     [Parameter("Configuration to build - Default is 'Debug' (local) or 'Release' (server)")]
     readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
 
-
-    AbsolutePath ClientDirectory => RootDirectory / "Synapse";
+    AbsolutePath ClientDirectory => RootDirectory / "Synapse.Client";
     AbsolutePath ServerDirectory => RootDirectory / "Synapse.Revit";
-
     AbsolutePath NugetOutputDirectory => RootDirectory / "nuget";
 
     Target Clean => _ => _
@@ -56,6 +59,7 @@ class Build : NukeBuild
         {
             ClientDirectory.GlobDirectories("**/bin", "**/obj").ForEach(DeleteDirectory);
             ServerDirectory.GlobDirectories("**/bin", "**/obj").ForEach(DeleteDirectory);
+
             EnsureCleanDirectory(NugetOutputDirectory);
         });
 
@@ -63,32 +67,33 @@ class Build : NukeBuild
         .Executes(() =>
         {
             DotNetRestore(_ => _
-                .SetProjectFile(Solution.Synapse_Client));
-            DotNetRestore(_ => _
-                .SetProjectFile(Solution.Synapse_Revit));
+                .SetProjectFile(Solution));
         });
 
     Target Compile => _ => _
         .DependsOn(Restore)
         .Before(Pack)
-        .Produces("*.dll")
+        //.Produces(ClientDirectory / "**/*.dll")
+        //.Produces(ServerDirectory / "**/*.dll")
         .Executes(() =>
         {
-            Project synapseClient = Solution.Synapse_Client;
+            Project synapseClient = Solution.GetProject("Synapse.Client");
             DotNetBuild(_ => _
                 .SetProjectFile(synapseClient)
+                .SetNoRestore(true)
                 .SetConfiguration(Configuration));
 
-            Project synapseServer = Solution.Synapse_Revit;
+            Project synapseServer = Solution.GetProject("Synapse.Revit");
             DotNetBuild(_ => _
                 .SetProjectFile(synapseServer)
+                .SetNoRestore(true)
                 .SetConfiguration(Configuration));
             MergeRevitServerDllsWithILRepack();
         });
 
     Target Pack => _ => _
         .DependsOn(Compile)
-        .Consumes(Compile, "*.dll")
+        .Consumes(Compile)
         .Produces(NugetOutputDirectory / "*.nupkg")
         .Executes(() =>
         {
@@ -101,12 +106,13 @@ class Build : NukeBuild
                     Directory.CreateDirectory(NugetOutputDirectory);
                 }
                 File.Copy(iconPath, NugetOutputDirectory / iconFileName, true);
-                                File.Copy(iconPath, NugetOutputDirectory / iconFileName, true);
+                File.Copy(iconPath, NugetOutputDirectory / iconFileName, true);
             }
 
             // client
+            Project synapseClient = Solution.GetProject("Synapse.Client");
             DotNetPack(_ => _
-                .SetProject(Solution.Synapse_Client)
+                .SetProject(synapseClient)
                 .SetConfiguration(Configuration)
                 .EnableNoBuild()
                 .EnableNoRestore()
@@ -127,7 +133,6 @@ class Build : NukeBuild
 
             File.Copy(iconPath, serverBuildDir / iconFileName, true);
 
-            //FrameworkReference[] frameworkReferences = new[] { new FrameworkReference("Synapse.Revit.dll") };
             ManifestMetadata nugetPackageMetadata = new ManifestMetadata()
             {
                 Id = "Synapse.Revit",
@@ -139,16 +144,15 @@ class Build : NukeBuild
                 Version = NuGetVersion.Parse(Version), // sets during pack
                 Repository = new RepositoryMetadata("git", "https://github.com/amescodes/Synapse", "main", ""),
                 Copyright = "Copyright © 2022 ames codes",
-                //ContentFiles = new[] { iconFile }
             };
             Manifest nuspecFile = NuGet.Packaging.Manifest.Create(nugetPackageMetadata);
-            nuspecFile.Files.Add(new ManifestFile(){Source = "Synapse.Revit.dll", Target = "lib"});
+            nuspecFile.Files.Add(new ManifestFile() { Source = "Synapse.Revit.dll", Target = "lib" });
             if (Configuration == Configuration.Debug)
             {
-                nuspecFile.Files.Add(new ManifestFile(){Source = "Synapse.Revit.pdb", Target = "lib"});
+                nuspecFile.Files.Add(new ManifestFile() { Source = "Synapse.Revit.pdb", Target = "lib" });
             }
             nuspecFile.Files.Add(new ManifestFile() { Source = "grpc_csharp_ext.x64.dll", Target = "lib" });
-            nuspecFile.Files.Add(new ManifestFile(){Source = iconFileName, Target = "."});
+            nuspecFile.Files.Add(new ManifestFile() { Source = iconFileName, Target = "." });
 
             AbsolutePath nuspecFilePath = NugetOutputDirectory / "Synapse.Revit.nuspec";
             using (Stream nuspecStream = new FileStream(nuspecFilePath, FileMode.Create, FileAccess.Write))
@@ -164,26 +168,12 @@ class Build : NukeBuild
                 .SetIncludeReferencedProjects(false)
                 .SetVersion(Version)
                 .SetOutputDirectory(NugetOutputDirectory));
-
-            //DotNetPack(_ => _
-            //    .SetProject(Solution.Synapse_Revit)
-            //    .SetConfiguration(Configuration)
-            //    .EnableNoBuild()
-            //    .EnableNoRestore()
-            //    .SetAuthors("ames codes")
-            //    .SetPackageProjectUrl("https://github.com/amescodes/Synapse")
-            //    .SetDescription("Server package for Revit Synapse library. This package should be loaded into the Revit addin.")
-            //    .SetPackageTags("revit grpc client server communication")
-            //    .SetPackageIconUrl(iconPath)
-            //    .SetVersion(Version)
-            //    .SetOutputDirectory(NugetOutputDirectory));
         });
 
     void MergeRevitServerDllsWithILRepack()
     {
-        IReadOnlyCollection<string> serverBuildDirStr = GlobDirectories(ServerDirectory, $"bin/{Configuration}/**");
+        IReadOnlyCollection<string> serverBuildDirStr = GlobDirectories(ServerDirectory, $"**/**");
         AbsolutePath serverBuildDir = (AbsolutePath)serverBuildDirStr.MaxBy(p => p.Length);
-        //AbsolutePath serverBuildDir = ServerDirectory / "bin/*/";
         AbsolutePath synapseDllFile = serverBuildDir / "Synapse.Revit.dll";
         string[] inputAssemblies = new string[]
         {
@@ -191,7 +181,6 @@ class Build : NukeBuild
             serverBuildDir / "Google.Protobuf.dll",
             serverBuildDir / "Grpc.Core.dll",
             serverBuildDir / "Grpc.Core.Api.dll",
-            //serverBuildDir / "grpc_csharp_ext.x64.dll",
             serverBuildDir / "Newtonsoft.Json.dll",
             serverBuildDir / "System.Buffers.dll",
             serverBuildDir / "System.Memory.dll",
