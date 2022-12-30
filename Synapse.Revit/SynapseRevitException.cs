@@ -5,7 +5,7 @@ namespace Synapse.Revit
     public class SynapseRevitException : Exception
     {
         public string Message { get; } = "";
-        public Exception InnerException { get; }
+        public new Exception InnerException { get; }
 
         public SynapseRevitException(string message)
         {

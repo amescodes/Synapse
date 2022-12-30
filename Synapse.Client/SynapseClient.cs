@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using Grpc.Core;
 
@@ -8,16 +10,18 @@ namespace Synapse
 {
     public class SynapseClient
     {
+        private const int Port = 8278;
+
         private Channel channel;
         private RevitRunner.RevitRunnerClient revitRunner;
 
-        private SynapseClient(){}
+        private SynapseClient() { }
 
         public static SynapseClient StartSynapseClient()
         {
             SynapseClient synapseClient = new SynapseClient();
-            
-            synapseClient.channel = new Channel($"127.0.0.1:7221", ChannelCredentials.Insecure);
+
+            synapseClient.channel = new Channel($"127.0.0.1:{Port}", ChannelCredentials.Insecure);
             synapseClient.revitRunner = new RevitRunner.RevitRunnerClient(synapseClient.channel);
 
             return synapseClient;
@@ -60,7 +64,7 @@ namespace Synapse
         {
             return await revitRunner.DoRevitAsync(request);
         }
-
+        
         public void Shutdown()
         {
             channel.ShutdownAsync();
