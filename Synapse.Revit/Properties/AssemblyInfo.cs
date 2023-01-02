@@ -34,4 +34,4 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("0.1.1.0")]
 [assembly: AssemblyVersion("0.1.1.0")]
 [assembly: AssemblyFileVersion("0.1.1.0")]
-[assembly: AssemblyInformationalVersion("0.1.1-alpha.25+Branch.develop.Sha.8730d3f38d822c4205956c677068d889c8864c41")]
+[assembly: AssemblyInformationalVersion("0.1.1-dependabot-nuget-Synapse-Client-Newtonsoft-Json-13-0-1.1+32.Branch.dependabot-nuget-Synapse.Client-Newtonsoft.Json-13.0.1.Sha.d9aad393ad8ee6c3b5ad3e04feee4fbe33de412f")]
