@@ -82,12 +82,12 @@ namespace Synapse.Revit
                 throw new SynapseRevitException("Method not found in SynapseMethodDictionary!");
             }
 
-            if (!synapseDictionary.TryGetValue(request.MethodId, out SynapseProcess synapse))
+            if (!synapseDictionary.TryGetValue(request.MethodId, out SynapseProcess synapseProcess))
             {
                 throw new SynapseRevitException("IRevitSynapse not found in SynapseDictionary!");
             }
 
-            if (method.GetCustomAttribute<SynapseRevitMethodAttribute>() is not { } revitCommandAttribute)
+            if (method.GetCustomAttribute<SynapseRevitMethodAttribute>() is not SynapseRevitMethodAttribute)
             {
                 throw new SynapseRevitException("Command registered without RevitCommandAttribute!");
             }
@@ -101,7 +101,7 @@ namespace Synapse.Revit
                     $"does not match the number needed by the method ({method.GetGenericArguments().Length}).");
             }
 
-            object output = method.Invoke(synapse.Synapse, commandInputsAsArray);
+            object output = method.Invoke(synapseProcess.Synapse, commandInputsAsArray);
             string jsonOutput = JsonConvert.SerializeObject(output);
 
             return Task.FromResult(new SynapseOutput()
@@ -116,9 +116,11 @@ namespace Synapse.Revit
             // start grpc server
             try
             {
+                ServerServiceDefinition revitRunnerServiceDefinition = RevitRunner.BindService(service);
+
                 Server grpcServer = new Server
                 {
-                    Services = { RevitRunner.BindService(service) },
+                    Services = { revitRunnerServiceDefinition },
                     Ports = { new ServerPort(host, port, ServerCredentials.Insecure) }
                 };
 

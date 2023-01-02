@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 using Grpc.Core;
@@ -32,6 +33,7 @@ namespace Synapse
             string inputAsJsonString = JsonConvert.SerializeObject(inputs);
 
             SynapseOutput response = DoRevit(new SynapseRequest() { MethodId = methodId, MethodInputJson = inputAsJsonString });
+
             TOut deserializeObject = JsonConvert.DeserializeObject<TOut>(response.MethodOutputJson);
             if (deserializeObject == null)
             {
@@ -39,6 +41,39 @@ namespace Synapse
             }
 
             return deserializeObject;
+        }
+
+        public SynapseOutput DoRevit(string methodId, params object[] inputs)
+        {
+            string inputAsJsonString = JsonConvert.SerializeObject(inputs);
+
+            SynapseOutput response;
+            try
+            {
+                response = DoRevit(new SynapseRequest() { MethodId = methodId, MethodInputJson = inputAsJsonString });
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex);
+
+                //todo make error class
+                response = new SynapseOutput()
+                {
+                    MethodOutputJson = JsonConvert.SerializeObject(ex, Formatting.Indented)
+                };
+            }
+
+            return response;
+        }
+
+        /// <summary>
+        /// Sends a request to the Revit Server to run a method.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        public SynapseOutput DoRevit(SynapseRequest request)
+        {
+            return revitRunner.DoRevit(request);
         }
 
         public async Task<TOut> DoRevitAsync<TOut>(string methodId, params object[] inputs)
@@ -46,6 +81,7 @@ namespace Synapse
             string inputAsJsonString = JsonConvert.SerializeObject(inputs);
 
             SynapseOutput response = await DoRevitAsync(new SynapseRequest() { MethodId = methodId, MethodInputJson = inputAsJsonString });
+
             TOut deserializeObject = JsonConvert.DeserializeObject<TOut>(response.MethodOutputJson);
             if (deserializeObject == null)
             {
@@ -55,19 +91,45 @@ namespace Synapse
             return deserializeObject;
         }
 
-        public SynapseOutput DoRevit(SynapseRequest request)
+        public async Task<SynapseOutput> DoRevitAsync(string methodId, params object[] inputs)
         {
-            return revitRunner.DoRevit(request);
+            string inputAsJsonString = JsonConvert.SerializeObject(inputs);
+
+            SynapseOutput response;
+            try
+            {
+                response = await DoRevitAsync(new SynapseRequest() { MethodId = methodId, MethodInputJson = inputAsJsonString });
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex);
+                //todo make error class
+                response = new SynapseOutput()
+                {
+                    MethodOutputJson = JsonConvert.SerializeObject(ex, Formatting.Indented)
+                };
+            }
+
+            return response;
         }
 
+        /// <summary>
+        /// Sends a request to the Revit Server to run a method.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         public async Task<SynapseOutput> DoRevitAsync(SynapseRequest request)
         {
             return await revitRunner.DoRevitAsync(request);
         }
-        
-        public void Shutdown()
+
+        /// <summary>
+        /// Shuts down the channel that the client is using to communicate with the Revit Server.
+        /// </summary>
+        /// <returns></returns>
+        public async Task Shutdown()
         {
-            channel.ShutdownAsync();
+            await channel.ShutdownAsync();
         }
     }
 }
