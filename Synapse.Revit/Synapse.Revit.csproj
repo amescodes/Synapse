@@ -1,19 +1,24 @@
 ﻿<Project DefaultTargets="Build" Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<Configurations>Debug;Release</Configurations>
-		<RuntimeIdentifiers>win</RuntimeIdentifiers>
+
 		<TargetFrameworks>net48</TargetFrameworks>
+		<Platforms>x64</Platforms>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<OutputPath>.\bin\$(Configuration)</OutputPath>
+
 		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
 		<EnableDefaultItems>false</EnableDefaultItems>
-		<AssemblyName>Synapse.Revit</AssemblyName>
-		<RootNamespace>Synapse.Revit</RootNamespace>
+		<IsPublishable>False</IsPublishable>
 		<DebugType>full</DebugType>
 		<LangVersion>latest</LangVersion>
+
+		<AssemblyName>Synapse.Revit</AssemblyName>
+		<RootNamespace>Synapse.Revit</RootNamespace>
 		<Title>Synapse Revit</Title>
 		<PackageProjectUrl></PackageProjectUrl>
 		<Description>Inter-process communication for Revit using gRPC.</Description>
 		<Copyright>Copyright © 2022 ames codes</Copyright>
-		<PackageReadmeFile></PackageReadmeFile>
 		<RepositoryUrl>https://github.com/amescodes/Synapse</RepositoryUrl>
 	</PropertyGroup>
 	<ItemGroup>
@@ -22,9 +27,6 @@
 		<Reference Include="System.Windows.Forms" />
 		<Reference Include="System.Xaml" />
 		<Reference Include="WindowsBase" />
-	</ItemGroup>
-	<ItemGroup Condition="$(DefineConstants.Contains('WINFORMS'))">
-		<Reference Include="System.Windows.Forms" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -36,23 +38,17 @@
 		<Compile Include="ProcessUtil.cs" />
 	</ItemGroup>
 
-	<!--<ItemGroup>
-	  <None Include="ILRepack.targets" />
-	</ItemGroup>-->
-
 	<ItemGroup>
 		<PackageReference Include="Google.Protobuf" Version="3.21.9" />
 		<PackageReference Include="Grpc.Core" Version="2.46.5" />
 		<PackageReference Include="Grpc.Tools" Version="2.50.0">
 			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
 	</ItemGroup>
 
-
 	<ItemGroup>
-		<Protobuf Include="..\Protos\revit.proto" GrpcServices="Server" Link="Protos\revit.proto" />
+		<Protobuf Include="..\protos\synapse.proto" GrpcServices="Server" Link="Protos\synapse.proto" Access="Protected" />
 	</ItemGroup>
 
 </Project>

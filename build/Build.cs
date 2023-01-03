@@ -26,7 +26,7 @@ using NuGet.Versioning;
     GitHubActionsImage.WindowsLatest,
     FetchDepth = 0,
     OnPushBranches = new[] { "main", "develop" },
-    InvokedTargets = new[] { nameof(Build.Pack) },
+    InvokedTargets = new[] { nameof(Pack) },
     ImportSecrets = new[] { nameof(SYNAPSE_NUGET_API_KEY) },
     EnableGitHubToken = true,
     PublishArtifacts = true,
@@ -73,20 +73,23 @@ class Build : NukeBuild
     Target Compile => _ => _
         .DependsOn(Restore)
         .Before(Pack)
-        //.Produces(ClientDirectory / "**/*.dll")
-        //.Produces(ServerDirectory / "**/*.dll")
         .Executes(() =>
         {
             Project synapseClient = Solution.GetProject("Synapse.Client");
+            //string clientOutputPath = ClientDirectory / @$"bin/{Configuration}";
+
             DotNetBuild(_ => _
                 .SetProjectFile(synapseClient)
                 .SetNoRestore(true)
+                .SetVersion(Version)
                 .SetConfiguration(Configuration));
 
             Project synapseServer = Solution.GetProject("Synapse.Revit");
+            //string serverOutputPath = ServerDirectory / @$"bin/{Configuration}";
             DotNetBuild(_ => _
                 .SetProjectFile(synapseServer)
                 .SetNoRestore(true)
+                .SetVersion(Version)
                 .SetConfiguration(Configuration));
             MergeRevitServerDllsWithILRepack();
         });
@@ -172,8 +175,7 @@ class Build : NukeBuild
 
     void MergeRevitServerDllsWithILRepack()
     {
-        IReadOnlyCollection<string> serverBuildDirStr = GlobDirectories(ServerDirectory, $"**/**");
-        AbsolutePath serverBuildDir = (AbsolutePath)serverBuildDirStr.MaxBy(p => p.Length);
+        AbsolutePath serverBuildDir = (AbsolutePath)ServerDirectory / $"bin/{Configuration}";
         AbsolutePath synapseDllFile = serverBuildDir / "Synapse.Revit.dll";
         string[] inputAssemblies = new string[]
         {

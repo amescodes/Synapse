@@ -74,7 +74,6 @@ namespace Synapse.Revit
             }
         }
 
-
         public override Task<SynapseOutput> DoRevit(SynapseRequest request, ServerCallContext context)
         {
             if (!synapseMethodDictionary.TryGetValue(request.MethodId, out MethodInfo method))

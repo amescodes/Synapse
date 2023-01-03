@@ -1,8 +1,6 @@
 syntax = "proto3";
 
-option csharp_namespace = "Synapse";
-
-package runrevit;
+package synapse;
 
 // The greeting service definition.
 service RevitRunner {
