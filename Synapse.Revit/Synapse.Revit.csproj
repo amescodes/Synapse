@@ -48,7 +48,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Protobuf Include="..\protos\synapse.proto" GrpcServices="Server" Link="Protos\synapse.proto" Access="Protected" />
+		<Protobuf Include="..\protos\synapse.proto" GrpcServices="Server" Link="Protos\synapse.proto" />
 	</ItemGroup>
 
 </Project>

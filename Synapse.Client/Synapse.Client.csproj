@@ -34,7 +34,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Protobuf Include="..\Protos\synapse.proto" GrpcServices="Client" Link="Protos\synapse.proto" />
+		<Protobuf Include="..\Protos\synapse.proto" GrpcServices="Client" Link="Protos\synapse.proto" Access="Internal"/>
 	</ItemGroup>
 
 </Project>

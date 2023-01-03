@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
-
 using Grpc.Core;
 
 using Newtonsoft.Json;
@@ -28,99 +27,39 @@ namespace Synapse
             return synapseClient;
         }
 
-        public TOut DoRevit<TOut>(string methodId, params object[] inputs)
+        /// <summary>
+        /// Sends a request to the Revit Server to run a method.
+        /// </summary>
+        /// <param name="methodId"></param>
+        /// <param name="output"></param>
+        /// <param name="inputs"></param>
+        /// <returns></returns>
+        public string TryDoRevit<TOut>(string methodId, out TOut output, params object[] inputs)
         {
             string inputAsJsonString = JsonConvert.SerializeObject(inputs);
 
             SynapseOutput response = DoRevit(new SynapseRequest() { MethodId = methodId, MethodInputJson = inputAsJsonString });
 
-            TOut deserializeObject = JsonConvert.DeserializeObject<TOut>(response.MethodOutputJson);
-            if (deserializeObject == null)
-            {
-                throw new SynapseException($"Couldn't deserialize Revit response to type {typeof(TOut)}.");
-            }
+            output = JsonConvert.DeserializeObject<TOut>(response.MethodOutputJson);
 
-            return deserializeObject;
-        }
-
-        public SynapseOutput DoRevit(string methodId, params object[] inputs)
-        {
-            string inputAsJsonString = JsonConvert.SerializeObject(inputs);
-
-            SynapseOutput response;
-            try
-            {
-                response = DoRevit(new SynapseRequest() { MethodId = methodId, MethodInputJson = inputAsJsonString });
-            }
-            catch (Exception ex)
-            {
-                Trace.WriteLine(ex);
-
-                //todo make error class
-                response = new SynapseOutput()
-                {
-                    MethodOutputJson = JsonConvert.SerializeObject(ex, Formatting.Indented)
-                };
-            }
-
-            return response;
+            return response.MethodOutputJson;
         }
 
         /// <summary>
         /// Sends a request to the Revit Server to run a method.
         /// </summary>
-        /// <param name="request"></param>
+        /// <param name="methodId"></param>
+        /// <param name="inputs"></param>
         /// <returns></returns>
-        public SynapseOutput DoRevit(SynapseRequest request)
-        {
-            return revitRunner.DoRevit(request);
-        }
-
-        public async Task<TOut> DoRevitAsync<TOut>(string methodId, params object[] inputs)
+        public async Task<(TOut,string)> DoRevitAsync<TOut>(string methodId, params object[] inputs)
         {
             string inputAsJsonString = JsonConvert.SerializeObject(inputs);
 
             SynapseOutput response = await DoRevitAsync(new SynapseRequest() { MethodId = methodId, MethodInputJson = inputAsJsonString });
 
             TOut deserializeObject = JsonConvert.DeserializeObject<TOut>(response.MethodOutputJson);
-            if (deserializeObject == null)
-            {
-                throw new SynapseException($"Couldn't deserialize Revit response to type {typeof(TOut)}.");
-            }
 
-            return deserializeObject;
-        }
-
-        public async Task<SynapseOutput> DoRevitAsync(string methodId, params object[] inputs)
-        {
-            string inputAsJsonString = JsonConvert.SerializeObject(inputs);
-
-            SynapseOutput response;
-            try
-            {
-                response = await DoRevitAsync(new SynapseRequest() { MethodId = methodId, MethodInputJson = inputAsJsonString });
-            }
-            catch (Exception ex)
-            {
-                Trace.WriteLine(ex);
-                //todo make error class
-                response = new SynapseOutput()
-                {
-                    MethodOutputJson = JsonConvert.SerializeObject(ex, Formatting.Indented)
-                };
-            }
-
-            return response;
-        }
-
-        /// <summary>
-        /// Sends a request to the Revit Server to run a method.
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        public async Task<SynapseOutput> DoRevitAsync(SynapseRequest request)
-        {
-            return await revitRunner.DoRevitAsync(request);
+            return (deserializeObject,response.MethodOutputJson);
         }
 
         /// <summary>
@@ -130,6 +69,44 @@ namespace Synapse
         public async Task Shutdown()
         {
             await channel.ShutdownAsync();
+        }
+        
+
+
+        internal SynapseOutput DoRevit(SynapseRequest request)
+        {
+            try
+            {
+                return revitRunner.DoRevit(request);
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex);
+
+                //todo make error class
+                return new SynapseOutput()
+                {
+                    MethodOutputJson = JsonConvert.SerializeObject(ex, Formatting.Indented)
+                };
+            }
+        }
+        
+        internal async Task<SynapseOutput> DoRevitAsync(SynapseRequest request)
+        {
+            try
+            {
+                return await revitRunner.DoRevitAsync(request);
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex);
+
+                //todo make error class
+                return new SynapseOutput()
+                {
+                    MethodOutputJson = JsonConvert.SerializeObject(ex, Formatting.Indented)
+                };
+            }
         }
     }
 }

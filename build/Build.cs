@@ -148,13 +148,14 @@ class Build : NukeBuild
                 Repository = new RepositoryMetadata("git", "https://github.com/amescodes/Synapse", "main", ""),
                 Copyright = "Copyright © 2022 ames codes",
             };
+
             Manifest nuspecFile = NuGet.Packaging.Manifest.Create(nugetPackageMetadata);
-            nuspecFile.Files.Add(new ManifestFile() { Source = "Synapse.Revit.dll", Target = "lib" });
+            nuspecFile.Files.Add(new ManifestFile() { Source = "Synapse.Revit.dll", Target = "lib/net48" });
             if (Configuration == Configuration.Debug)
             {
-                nuspecFile.Files.Add(new ManifestFile() { Source = "Synapse.Revit.pdb", Target = "lib" });
+                nuspecFile.Files.Add(new ManifestFile() { Source = "Synapse.Revit.pdb", Target = "lib/net48" });
             }
-            nuspecFile.Files.Add(new ManifestFile() { Source = "grpc_csharp_ext.x64.dll", Target = "lib" });
+            nuspecFile.Files.Add(new ManifestFile() { Source = "grpc_csharp_ext.x64.dll", Target = "lib/net48" });
             nuspecFile.Files.Add(new ManifestFile() { Source = iconFileName, Target = "." });
 
             AbsolutePath nuspecFilePath = NugetOutputDirectory / "Synapse.Revit.nuspec";
