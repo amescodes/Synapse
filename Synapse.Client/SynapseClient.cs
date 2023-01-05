@@ -70,8 +70,6 @@ namespace Synapse
         {
             await channel.ShutdownAsync();
         }
-        
-
 
         internal SynapseOutput DoRevit(SynapseRequest request)
         {

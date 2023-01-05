@@ -125,6 +125,8 @@ class Build : NukeBuild
                 .SetPackageTags("revit grpc client server communication")
                 .SetPackageIconUrl(iconPath)
                 .SetVersion(Version)
+                .SetIncludeSymbols(true)
+                .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg)
                 .SetOutputDirectory(NugetOutputDirectory));
 
             // revit server
@@ -170,6 +172,8 @@ class Build : NukeBuild
                 .SetBasePath(serverBuildDir)
                 .SetBuild(false)
                 .SetIncludeReferencedProjects(false)
+                .SetSymbols(true)
+                .SetSymbolPackageFormat(NuGetSymbolPackageFormat.snupkg)
                 .SetVersion(Version)
                 .SetOutputDirectory(NugetOutputDirectory));
         });
