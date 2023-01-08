@@ -102,8 +102,14 @@ namespace Synapse.Revit
                 }
 
                 object[] commandInputsAsArray = JsonConvert.DeserializeObject<object[]>(request.MethodInputJson);
+                int commandInputsLength = 0;
+                if (commandInputsAsArray != null)
+                {
+                    commandInputsLength = commandInputsAsArray.Length;
+                }
+
                 ParameterInfo[] parameters = method.GetParameters();
-                if (parameters.Length != commandInputsAsArray?.Length)
+                if (parameters.Length != commandInputsLength)
                 {
                     throw new SynapseRevitException(
                         $"Number of input arguments ({commandInputsAsArray?.Length}) from the attribute on method {method.Name} " +
