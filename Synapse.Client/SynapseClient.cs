@@ -106,7 +106,7 @@ namespace Synapse
         {
             try
             {
-                return revitRunner.DoRevit(request);
+                return revitRunner.TryDoRevit(request);
             }
             catch (Exception ex)
             {
@@ -125,7 +125,7 @@ namespace Synapse
         {
             try
             {
-                return await revitRunner.DoRevitAsync(request);
+                return await revitRunner.TryDoRevitAsync(request);
             }
             catch (Exception ex)
             {

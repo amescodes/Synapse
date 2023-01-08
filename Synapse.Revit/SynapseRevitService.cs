@@ -14,8 +14,8 @@ namespace Synapse.Revit
     public class SynapseRevitService : RevitRunner.RevitRunnerBase
     {
         private const int port = 8278;
-        private static SynapseRegistry synapseRegistry = new SynapseRegistry();
         private static Server server;
+        private static SynapseRegistry synapseRegistry = new SynapseRegistry();
 
         /// <summary>
         /// True if gRPC server is ready to receive requests.

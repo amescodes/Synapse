@@ -5,7 +5,7 @@ package synapse;
 // The greeting service definition.
 service RevitRunner {
   // Sends a greeting
-  rpc DoRevit (SynapseRequest) returns (SynapseOutput);
+  rpc TryDoRevit (SynapseRequest) returns (SynapseOutput);
 }
 
 message SynapseRequest {
