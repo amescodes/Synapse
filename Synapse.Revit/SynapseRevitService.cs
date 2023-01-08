@@ -86,12 +86,12 @@ namespace Synapse.Revit
         {
             try
             {
-                if (synapseRegistry.TryGetMethod(request.MethodId, out MethodInfo method))
+                if (!synapseRegistry.TryGetMethod(request.MethodId, out MethodInfo method))
                 {
                     throw new SynapseRevitException("Method not found in SynapseMethodDictionary!");
                 }
 
-                if (synapseRegistry.TryGetSynapse(request.MethodId, out SynapseProcess synapseProcess))
+                if (!synapseRegistry.TryGetSynapse(request.MethodId, out SynapseProcess synapseProcess))
                 {
                     throw new SynapseRevitException("IRevitSynapse not found in SynapseDictionary!");
                 }
