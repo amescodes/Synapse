@@ -54,7 +54,7 @@ namespace Synapse
         public string TryDoRevit<TOut>(string methodId, out TOut output, params object[] inputs)
         {
             string inputAsJsonString = JsonConvert.SerializeObject(inputs);
-            if (inputs.All(i => i.Equals(null)))
+            if (inputs.All(i => i is null))
             {
                 inputAsJsonString = "";
             }
