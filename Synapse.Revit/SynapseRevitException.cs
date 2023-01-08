@@ -2,20 +2,11 @@
 
 namespace Synapse.Revit
 {
+    [Serializable]
     public class SynapseRevitException : Exception
     {
-        public string Message { get; } = "";
-        public new Exception InnerException { get; }
+        public SynapseRevitException(string message): base (message) { }
 
-        public SynapseRevitException(string message)
-        {
-            Message = message;
-        }
-
-        public SynapseRevitException(string message, Exception innerException)
-        {
-            Message = message;
-            InnerException = innerException;
-        }
+        public SynapseRevitException(string message, Exception innerException) : base(message, innerException) { }      
     }
 }

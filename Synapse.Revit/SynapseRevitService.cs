@@ -13,151 +13,177 @@ namespace Synapse.Revit
 {
     public class SynapseRevitService : RevitRunner.RevitRunnerBase
     {
-        private const int Port = 8278;
+        private const int port = 8278;
+        private static SynapseRegistry synapseRegistry = new SynapseRegistry();
+        private static Server server;
 
-        public static bool ServerReady { get; private set; }
-        private static Server GrpcServer { get; set; }
-
-        // method id and corresponding method
-        private static Dictionary<string, MethodInfo> synapseMethodDictionary = new Dictionary<string, MethodInfo>();
-        // method id and id synapse containing method
-        private static Dictionary<string, SynapseProcess> synapseDictionary = new Dictionary<string, SynapseProcess>();
+        /// <summary>
+        /// True if gRPC server is ready to receive requests.
+        /// </summary>
+        public static bool Ready => server != null;
 
         private SynapseRevitService() { }
 
-        public static bool Initialize()
+        /// <inheritdoc cref="Initialize(string, int)"/>
+        public static async Task<bool> Initialize()
+        {
+            return await Initialize("127.0.0.1", port);
+        }
+
+        /// <summary>
+        /// Starts the gRPC server that will receive calls from 
+        /// the client to perform actions within Revit.
+        /// </summary>
+        /// <returns>True if server is started successfully.</returns>
+        public static async Task<bool> Initialize(string address, int port)
         {
             try
             {
-                if (ServerReady)
+                if (Ready)
                 {
                     return true;
                 }
 
-                GrpcServer = StartGrpcServer("127.0.0.1", Port);
-            }
-            catch
-            {
-
-            }
-
-            return ServerReady;
-        }
-
-        public static SynapseProcess RegisterSynapse(IRevitSynapse synapse)
-        {
-            // check if synapse is already registered
-            if (synapseDictionary.Values.FirstOrDefault(s => s.Id.Equals(synapse.Id)) is SynapseProcess process)
-            {
-                return process;
-            }
-
-            SynapseProcess synapseProcess = new SynapseProcess(synapse);
-            AddSynapseMethodsToMethodDictionary(synapseProcess);
-
-            return synapseProcess;
-        }
-
-        public static void DeregisterSynapse(IRevitSynapse synapse)
-        {
-            foreach (KeyValuePair<string, SynapseProcess> methodIdAndProcess in synapseDictionary.ToList())
-            {
-                string synapseIdFromDictionary = methodIdAndProcess.Value.Id;
-                if (synapseIdFromDictionary != synapse.Id)
-                {
-                    continue;
-                }
-
-                string methodId = methodIdAndProcess.Key;
-                synapseMethodDictionary.Remove(methodId);
-                synapseDictionary.Remove(methodId);
-            }
-        }
-
-        public override Task<SynapseOutput> DoRevit(SynapseRequest request, ServerCallContext context)
-        {
-            if (!synapseMethodDictionary.TryGetValue(request.MethodId, out MethodInfo method))
-            {
-                throw new SynapseRevitException("Method not found in SynapseMethodDictionary!");
-            }
-
-            if (!synapseDictionary.TryGetValue(request.MethodId, out SynapseProcess synapseProcess))
-            {
-                throw new SynapseRevitException("IRevitSynapse not found in SynapseDictionary!");
-            }
-
-            if (method.GetCustomAttribute<SynapseRevitMethodAttribute>() is not SynapseRevitMethodAttribute)
-            {
-                throw new SynapseRevitException("Command registered without RevitCommandAttribute!");
-            }
-
-            object[] commandInputsAsArray = JsonConvert.DeserializeObject<object[]>(request.MethodInputJson);
-            ParameterInfo[] parameters = method.GetParameters();
-            if (parameters.Length != commandInputsAsArray?.Length)
-            {
-                throw new ArgumentException(
-                    $"Number of input arguments ({commandInputsAsArray?.Length}) from the attribute on method {method.Name} " +
-                    $"does not match the number needed by the method ({method.GetGenericArguments().Length}).");
-            }
-
-            object output = method.Invoke(synapseProcess.Synapse, commandInputsAsArray);
-            string jsonOutput = JsonConvert.SerializeObject(output);
-
-            return Task.FromResult(new SynapseOutput()
-            {
-                MethodOutputJson = jsonOutput
-            });
-        }
-
-        internal static Server StartGrpcServer(string host, int port)
-        {
-            SynapseRevitService service = new SynapseRevitService();
-            // start grpc server
-            try
-            {
-                ServerServiceDefinition revitRunnerServiceDefinition = RevitRunner.BindService(service);
-
-                Server grpcServer = new Server
-                {
-                    Services = { revitRunnerServiceDefinition },
-                    Ports = { new ServerPort(host, port, ServerCredentials.Insecure) }
-                };
-
-
-                grpcServer.Start();
-                ServerReady = true;
-
-                return grpcServer;
+                server = await StartGrpcServer(address, port);
             }
             catch (Exception ex)
             {
                 Trace.WriteLine(ex.Message);
-                return null;
             }
+
+            return Ready;
         }
 
-        internal static void StopGrpcServer()
+        /// <summary>
+        /// Registers an IRevitSynapse to make its contained methods 
+        /// callable from a process outside of the Revit application domain.
+        /// </summary>
+        /// <param name="synapse"></param>
+        /// <returns></returns>
+        public static SynapseProcess RegisterSynapse(IRevitSynapse synapse)
         {
-            GrpcServer.ShutdownAsync();
-            ServerReady = false;
+            return synapseRegistry.RegisterSynapse(synapse);
         }
 
-        private static void AddSynapseMethodsToMethodDictionary(SynapseProcess synapseProcess)
+        /// <summary>
+        /// Removes the Synapse from the registry. Its methods will
+        /// no longer be able to be called from an outside client.
+        /// </summary>
+        /// <param name="synapse"></param>
+        public static void DeregisterSynapse(IRevitSynapse synapse)
         {
-            Type synapseToAdd = synapseProcess.Synapse.GetType();
-            MethodInfo[] methods = synapseToAdd.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
-            foreach (MethodInfo method in methods)
+            synapseRegistry.DeregisterSynapse(synapse);
+        }
+
+        /// <summary>
+        /// Tries to perform the method from the SynapseRequest by
+        /// looking up the method in its internal registry.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public override Task<SynapseOutput> TryDoRevit(SynapseRequest request, ServerCallContext context)
+        {
+            try
             {
-                if (method.GetCustomAttribute<SynapseRevitMethodAttribute>() is not SynapseRevitMethodAttribute revitCommandAttribute)
+                if (synapseRegistry.TryGetMethod(request.MethodId, out MethodInfo method))
                 {
-                    continue;
+                    throw new SynapseRevitException("Method not found in SynapseMethodDictionary!");
                 }
 
-                synapseDictionary.Add(revitCommandAttribute.MethodId, synapseProcess);
-                synapseMethodDictionary.Add(revitCommandAttribute.MethodId, method);
-            }
+                if (synapseRegistry.TryGetSynapse(request.MethodId, out SynapseProcess synapseProcess))
+                {
+                    throw new SynapseRevitException("IRevitSynapse not found in SynapseDictionary!");
+                }
 
+                if (method.GetCustomAttribute<SynapseRevitMethodAttribute>() is not SynapseRevitMethodAttribute)
+                {
+                    throw new SynapseRevitException("Command registered without RevitCommandAttribute!");
+                }
+
+                object[] commandInputsAsArray = JsonConvert.DeserializeObject<object[]>(request.MethodInputJson);
+                ParameterInfo[] parameters = method.GetParameters();
+                if (parameters.Length != commandInputsAsArray?.Length)
+                {
+                    throw new SynapseRevitException(
+                        $"Number of input arguments ({commandInputsAsArray?.Length}) from the attribute on method {method.Name} " +
+                        $"does not match the number needed by the method ({method.GetGenericArguments().Length}).");
+                }
+
+                object output = method.Invoke(synapseProcess.Synapse, commandInputsAsArray);
+                string jsonOutput = JsonConvert.SerializeObject(output);
+
+                SynapseOutput result = new SynapseOutput()
+                {
+                    MethodOutputJson = jsonOutput
+                };
+
+                return Task.FromResult(result);
+            }
+            catch (Exception ex)
+            {
+                string errorJson = JsonConvert.SerializeObject(ex, Formatting.Indented);
+
+                Trace.WriteLine(ex);
+
+                SynapseOutput result = new SynapseOutput()
+                {
+                    MethodOutputJson = errorJson
+                };
+
+                return Task.FromResult(result);
+            }
         }
 
+        /// <inheritdoc cref="TryDoRevit(SynapseRequest, ServerCallContext)"/>
+        public async Task<SynapseOutput> TryDoRevitAsync(SynapseRequest request, ServerCallContext context)
+        {
+            return await TryDoRevit(request, context);
+        }
+
+        /// <summary>
+        /// Starts a gRPC server at the input address and port.
+        /// Binds the RevitRunner as a service.
+        /// </summary>
+        /// <param name="address"></param>
+        /// <param name="port"></param>
+        /// <returns></returns>
+        internal static async Task<Server> StartGrpcServer(string address, int port)
+        {
+            return await Task.Run(() =>
+            {
+                SynapseRevitService service = new SynapseRevitService();
+
+                try
+                {
+                    ServerServiceDefinition revitRunnerServiceDefinition = RevitRunner.BindService(service);
+
+                    Server grpcServer = new Server
+                    {
+                        Services = { revitRunnerServiceDefinition },
+                        Ports = { new ServerPort(address, port, ServerCredentials.Insecure) }
+                    };
+
+                    grpcServer.Start();
+
+                    return grpcServer;
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine(JsonConvert.SerializeObject(ex, Formatting.Indented));
+
+                    return null;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Shuts down the internal gRPC server.
+        /// </summary>
+        internal static async void StopGrpcServer()
+        {
+            await server.ShutdownAsync();
+            server = null;
+        }
     }
 }
