@@ -53,10 +53,10 @@ namespace Synapse
         /// <returns></returns>
         public string TryDoRevit<TOut>(string methodId, out TOut output, params object[] inputs)
         {
-            string inputAsJsonString = "";
-            if (inputs.Any())
+            string inputAsJsonString = JsonConvert.SerializeObject(inputs);
+            if (inputs.All(i => i.Equals(null)))
             {
-                JsonConvert.SerializeObject(inputs);
+                inputAsJsonString = "";
             }
 
             SynapseOutput response = DoRevit(new SynapseRequest() { MethodId = methodId, MethodInputJson = inputAsJsonString });
